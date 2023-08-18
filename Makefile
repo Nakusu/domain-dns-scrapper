@@ -1,6 +1,6 @@
 TARGET = scrapper
 
-FLAGS = 
+FLAGS = -Wall -Wextra -Werror
 
 all: $(TARGET)
 

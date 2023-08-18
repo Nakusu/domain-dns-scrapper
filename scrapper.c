@@ -51,7 +51,7 @@ size_t arrofArrayLength(char **arr)
     if (!arr || *arr == NULL)
         return 0;
 
-    for (size_t i = 0; i >= 0; i++)
+    for (size_t i = 0; 1 == 1; i++)
         if (arr[i] == NULL)
             return i - 1;
     return 0;
@@ -200,7 +200,6 @@ void *threadProcess(void *args)
 
 int main(int ac, char **av)
 {
-    pid_t fid;
     char **triesDomains = malloc(sizeof(char *) * 2);
     triesDomains[0] = "Test\0";
     triesDomains[1] = NULL;

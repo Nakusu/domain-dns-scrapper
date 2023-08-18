@@ -32,8 +32,9 @@
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
 #define BUFFER_SIZE 1024
-#define MUTEX_NUMBER 40
-#define MUTEX_TIMEOUT_MICROSECONDS 50000
+#define MUTEX_NUMBER 80
+#define MUTEX_TIMEOUT_MICROSECONDS 10000
+#define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 
 char *strjoin(char const *s1, char const *s2);
 
@@ -208,7 +209,7 @@ int main(int ac, char **av)
 
     if (ac != 3)
     {
-        printf("You must specify an domain and a number of tries\n");
+        printf(RED "You must specify an domain and a number of tries\n" RESET);
         return 1;
     }
 
@@ -219,11 +220,11 @@ int main(int ac, char **av)
 
     if (strchr(av[1], '.') == NULL)
     {
-        printf("Your domain %s, is invalid !\n", av[1]);
+        printf(RED "Your domain %s, is invalid !\n" RESET, av[1]);
         return 1;
     }
 
-    printf(GREEN "Start sub domain parsing for domain : %s\n" RESET, av[1]);
+    printf(MAGENTA "Start sub domain parsing for domain : %s\n" RESET, av[1]);
 
     for (int i = 0; i < atoi(av[2]); i++)
     {
@@ -251,6 +252,7 @@ int main(int ac, char **av)
         args->validSubDomains = &validSubDomains;
 
         pthread_create(&threads[i], NULL, &threadProcess, args);
+        usleep(THEAD_TIMEOUT_CREATION_MICROSECONDS);
     }
 
     for (int i = 0; i < atoi(av[2]); ++i) {

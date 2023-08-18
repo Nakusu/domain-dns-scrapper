@@ -32,7 +32,7 @@
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
 #define BUFFER_SIZE 1024
-#define MUTEX_NUMBER 80
+#define MUTEX_NUMBER 800
 #define MUTEX_TIMEOUT_MICROSECONDS 10000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 
@@ -194,7 +194,7 @@ void *threadProcess(void *args)
         printf(GREEN "subdomain %s exists!\n" RESET, datas->domain);
     }
     pthread_mutex_unlock(&mutexs[i]);
-    printf(GREEN "[%i] thread is ended\n" RESET, datas->index);
+    printf("[%i] thread is %sended%s, liberate mutex %s[%li]%s\n", datas->index, GREEN, RESET, MAGENTA, i, RESET);
     
     return NULL;
 }

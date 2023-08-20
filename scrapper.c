@@ -12,6 +12,8 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <sys/wait.h>
+#include <stdlib.h>
+#include <signal.h>
 
 #define RESET "\033[0m"
 #define BLACK "\033[30m"              /* Black */
@@ -33,12 +35,15 @@
 
 #define BUFFER_SIZE 1024
 #define MUTEX_NUMBER 800
-#define MUTEX_TIMEOUT_MICROSECONDS 10000
+#define MUTEX_TIMEOUT_MICROSECONDS 50000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 
 char *strjoin(char const *s1, char const *s2);
 
 static pthread_mutex_t mutexs[MUTEX_NUMBER];
+static int threads_dones = 0;
+static char *validSubDomains = "\0";
+
 
 typedef struct threadArg
 {
@@ -194,9 +199,17 @@ void *threadProcess(void *args)
         printf(GREEN "subdomain %s exists!\n" RESET, datas->domain);
     }
     pthread_mutex_unlock(&mutexs[i]);
-    printf("[%i] thread is %sended%s, liberate mutex %s[%li]%s\n", datas->index, GREEN, RESET, MAGENTA, i, RESET);
+    // printf("[%i] thread is %sended%s, liberate mutex %s[%li]%s\n", datas->index, GREEN, RESET, MAGENTA, i, RESET);
+
+    threads_dones += 1;
     
     return NULL;
+}
+
+void sigIntlCatch() {
+    printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);
+
+    exit(0);
 }
 
 int main(int ac, char **av)
@@ -204,8 +217,6 @@ int main(int ac, char **av)
     char **triesDomains = malloc(sizeof(char *) * 2);
     triesDomains[0] = "Test\0";
     triesDomains[1] = NULL;
-
-    char *validSubDomains = "\0";
 
     if (ac != 3)
     {
@@ -255,8 +266,14 @@ int main(int ac, char **av)
         usleep(THEAD_TIMEOUT_CREATION_MICROSECONDS);
     }
 
-    for (int i = 0; i < atoi(av[2]); ++i) {
-        pthread_join(threads[i], NULL);
+    // Catch SIGINT for not lost results
+    signal(SIGINT, sigIntlCatch);
+
+    float process_percentage;
+    while (threads_dones < (atoi(av[2]) - 1)) {
+        process_percentage = threads_dones * 100 / atof(av[2]);
+        printf("Process is done at %s%.2f%%%s. Still running %i threads\n", GREEN, process_percentage, RESET, (atoi(av[2]) - threads_dones));
+        sleep(1);
     }
 
     printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);

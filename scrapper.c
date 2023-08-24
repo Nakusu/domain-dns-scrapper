@@ -33,15 +33,18 @@
 #define BOLDCYAN "\033[1m\033[36m"    /* Bold Cyan */
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
-#define BUFFER_SIZE 1024
-#define MUTEX_NUMBER 800
-#define MUTEX_TIMEOUT_MICROSECONDS 50000
+#define MUTEX_NUMBER 400
+#define MUTEX_TIMEOUT_MICROSECONDS 40000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
+#define THREAD_CHECK_TIMEOUT_MICROSECONDS 2000
+#define MAX_THREADS_NUMBER 500
 
 char *strjoin(char const *s1, char const *s2);
 
 static pthread_mutex_t mutexs[MUTEX_NUMBER];
+static float entries;
 static int threads_dones = 0;
+static int threads_fill = 0;
 static char *validSubDomains = "\0";
 
 
@@ -49,7 +52,6 @@ typedef struct threadArg
 {
     int index;
     char *domain;
-    char **validSubDomains;
 } threadArg;
 
 size_t arrofArrayLength(char **arr)
@@ -115,57 +117,21 @@ char *randstring(size_t length)
     return randomString;
 }
 
-int socket_connect(char *host, in_port_t port)
+int testDomain(char *domain)
 {
-    struct hostent *hp;
-    struct sockaddr_in addr;
-    int on = 1, sock;
+    struct addrinfo hints, *res;
 
-    if (!(hp = gethostbyname(host)))
-    {
-        return -1;
-    }
-    bcopy(hp->h_addr, &addr.sin_addr, hp->h_length);
-    addr.sin_port = htons(port);
-    addr.sin_family = AF_INET;
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (const char *)&on, sizeof(int));
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;    // IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;
 
-    if (sock == -1)
-        return sock;
-
-    if (connect(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) == -1)
-        return -1;
-    return sock;
-}
-
-int testDomain(char *domain, int port)
-{
-    int fd;
-    char buffer[BUFFER_SIZE];
-    int exists;
-
-    fd = socket_connect(domain, port);
-    exists = 1;
-    if (fd <= 0)
-    {
-        return 0;
+    int result = getaddrinfo(domain, NULL, &hints, &res);
+    if (result == 0) {
+        freeaddrinfo(res);
+        return 1;
     }
 
-    write(fd, "GET /\r\n", strlen("GET /\r\n"));
-    bzero(buffer, BUFFER_SIZE);
-
-    read(fd, buffer, BUFFER_SIZE - 1);
-
-    if (strlen(buffer) == 0)
-    {
-        exists = 0;
-    }
-
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-
-    return exists;
+    return 0;
 }
 
 void *threadProcess(void *args)
@@ -186,22 +152,19 @@ void *threadProcess(void *args)
         usleep(MUTEX_TIMEOUT_MICROSECONDS);
     }
 
-    if (testDomain(datas->domain, 443))
+    if (testDomain(datas->domain))
     {
-        tmp = strjoin(*datas->validSubDomains, datas->domain);
-        datas->validSubDomains = &tmp;
-        printf(GREEN "subdomain %s exists!\n" RESET, datas->domain);
-    }
-    if (testDomain(datas->domain, 80))
-    {
-        tmp = strjoin(*datas->validSubDomains, datas->domain);
-        datas->validSubDomains = &tmp;
+        tmp = strjoin(validSubDomains, datas->domain);
+        validSubDomains = tmp;
         printf(GREEN "subdomain %s exists!\n" RESET, datas->domain);
     }
     pthread_mutex_unlock(&mutexs[i]);
     // printf("[%i] thread is %sended%s, liberate mutex %s[%li]%s\n", datas->index, GREEN, RESET, MAGENTA, i, RESET);
 
     threads_dones += 1;
+
+    free(datas->domain);
+    free(datas);
     
     return NULL;
 }
@@ -210,6 +173,17 @@ void sigIntlCatch() {
     printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);
 
     exit(0);
+}
+
+void *monitoring(void *args) {
+    float process_percentage;
+    while (threads_dones < (int)entries - 1) {
+        process_percentage = threads_dones * 100 / entries;
+        printf("Process is done at %s%.2f%%%s. Still running %i threads\n", GREEN, process_percentage, RESET, (int)entries - threads_dones);
+        sleep(1);
+    }
+
+    return args;
 }
 
 int main(int ac, char **av)
@@ -224,7 +198,9 @@ int main(int ac, char **av)
         return 1;
     }
 
-    pthread_t threads[atoi(av[2])];
+    pthread_t threads[MAX_THREADS_NUMBER];
+    pthread_t thead_monitoring;
+
     for (size_t i = 0; i < MUTEX_NUMBER; i++)
         pthread_mutex_init(&mutexs[i], NULL);
 
@@ -234,6 +210,11 @@ int main(int ac, char **av)
         printf(RED "Your domain %s, is invalid !\n" RESET, av[1]);
         return 1;
     }
+
+    entries = atof(av[2]);
+
+    pthread_create(&thead_monitoring, NULL, &monitoring, NULL);
+
 
     printf(MAGENTA "Start sub domain parsing for domain : %s\n" RESET, av[1]);
 
@@ -255,26 +236,27 @@ int main(int ac, char **av)
 
         triesDomains = appendStr(triesDomains, subDomain);
 
-        printf("[%i] test subdomain %s\n", i, subDomain);
 
         threadArg *args = malloc(sizeof(threadArg));
         args->index = i;
         args->domain = subDomain;
-        args->validSubDomains = &validSubDomains;
 
-        pthread_create(&threads[i], NULL, &threadProcess, args);
+        pthread_create(&threads[threads_fill], NULL, &threadProcess, args);
+        threads_fill += 1;
+        printf("[%i] test subdomain %s\n", i, subDomain);
+
         usleep(THEAD_TIMEOUT_CREATION_MICROSECONDS);
+
+        if (threads_fill >= MAX_THREADS_NUMBER) {
+            for (int j = 0; j < threads_fill ; j++) {
+                pthread_join(threads[j], NULL);
+            }
+            threads_fill = 0;
+        }
     }
 
     // Catch SIGINT for not lost results
     signal(SIGINT, sigIntlCatch);
-
-    float process_percentage;
-    while (threads_dones < (atoi(av[2]) - 1)) {
-        process_percentage = threads_dones * 100 / atof(av[2]);
-        printf("Process is done at %s%.2f%%%s. Still running %i threads\n", GREEN, process_percentage, RESET, (atoi(av[2]) - threads_dones));
-        sleep(1);
-    }
 
     printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);
 }

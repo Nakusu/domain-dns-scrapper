@@ -1,5 +1,5 @@
-# domain-dns-scrapper
-Sub domain bruterforcer.
+# Subdomain brute-force
+Subdomain brute-force.
 
 ## How to run it ?
 * run make into directory

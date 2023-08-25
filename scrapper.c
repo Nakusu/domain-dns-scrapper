@@ -37,7 +37,7 @@
 #define MUTEX_TIMEOUT_MICROSECONDS 40000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 #define THREAD_CHECK_TIMEOUT_MICROSECONDS 2000
-#define MAX_THREADS_NUMBER 500
+#define MAX_THREADS_NUMBER 1000
 
 char *strjoin(char const *s1, char const *s2);
 
@@ -218,6 +218,9 @@ int main(int ac, char **av)
 
     printf(MAGENTA "Start sub domain parsing for domain : %s\n" RESET, av[1]);
 
+    // Catch SIGINT for not lost results
+    signal(SIGINT, sigIntlCatch);
+
     for (int i = 0; i < atoi(av[2]); i++)
     {
         int maxLength = rand() % 35;
@@ -254,9 +257,6 @@ int main(int ac, char **av)
             threads_fill = 0;
         }
     }
-
-    // Catch SIGINT for not lost results
-    signal(SIGINT, sigIntlCatch);
 
     printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);
 }

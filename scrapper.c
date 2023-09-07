@@ -55,35 +55,47 @@ typedef struct threadArg
 } threadArg;
 
 size_t arrofArrayLength(char **arr)
-{
-    if (!arr || *arr == NULL)
-        return 0;
+{   
+    size_t i = 0;
+    
+    while (arr[i] != NULL) {
+        i++;
+    }
 
-    for (size_t i = 0; 1 == 1; i++)
-        if (arr[i] == NULL)
-            return i - 1;
-    return 0;
+    return i;
 }
 
 char **appendStr(char **strs, char *str)
 {
     size_t len = arrofArrayLength(strs);
+    size_t i = 0;
 
-    char **copy = malloc(sizeof(char *) * (len + 2));
+    char **copy = malloc(sizeof(char*) * (len + 2));
 
-    copy[len] = str;
-    copy[len + 1] = NULL;
+    while (strs[i]) {
+        copy[i] = strs[i];
+        i++;
+    }
+    
+    copy[i] = str;
+    copy[i + 1] = NULL;
 
     free(strs);
+
+    i = 0;
+    while (copy[i]) {
+        i++;
+    }
 
     return copy;
 }
 
 int hasStr(char **strs, char *str)
 {
-    size_t len = arrofArrayLength(strs);
+    if (str == NULL)
+        return 0;
 
-    for (size_t i = 0; i < len; i++)
+    for (size_t i = 0; strs[i]; i++)
     {
         if (strcmp(strs[i], str) == 0)
             return 1;
@@ -154,7 +166,7 @@ void *threadProcess(void *args)
 
     if (testDomain(datas->domain))
     {
-        tmp = strjoin(validSubDomains, datas->domain);
+        tmp = strjoin(validSubDomains, strjoin(" ", datas->domain));
         validSubDomains = tmp;
         printf(GREEN "subdomain %s exists!\n" RESET, datas->domain);
     }
@@ -163,7 +175,6 @@ void *threadProcess(void *args)
 
     threads_dones += 1;
 
-    free(datas->domain);
     free(datas);
     
     return NULL;
@@ -171,7 +182,6 @@ void *threadProcess(void *args)
 
 void sigIntlCatch() {
     printf(GREEN "List of valid subdomains finded : %s\n" RESET, validSubDomains);
-
     exit(0);
 }
 
@@ -215,7 +225,6 @@ int main(int ac, char **av)
 
     pthread_create(&thead_monitoring, NULL, &monitoring, NULL);
 
-
     printf(MAGENTA "Start sub domain parsing for domain : %s\n" RESET, av[1]);
 
     // Catch SIGINT for not lost results
@@ -229,16 +238,19 @@ int main(int ac, char **av)
 
         char *subDomain = strjoin(strjoin(randstring(maxLength), "."), av[1]);
 
+        printf("[%i] test subdomain %s\n", i, subDomain);
+
+
         // If subDomain has already been tested, pass it!
         if (hasStr(triesDomains, subDomain))
         {
             i -= 1;
-            printf(RED "Domain already tested!\n" RESET);
+            printf(RED "Domain %s already tested!\n" RESET, subDomain);
+            free(subDomain);
             continue;
         }
 
         triesDomains = appendStr(triesDomains, subDomain);
-
 
         threadArg *args = malloc(sizeof(threadArg));
         args->index = i;
@@ -246,7 +258,6 @@ int main(int ac, char **av)
 
         pthread_create(&threads[threads_fill], NULL, &threadProcess, args);
         threads_fill += 1;
-        printf("[%i] test subdomain %s\n", i, subDomain);
 
         usleep(THEAD_TIMEOUT_CREATION_MICROSECONDS);
 

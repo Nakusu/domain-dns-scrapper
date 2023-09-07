@@ -37,7 +37,7 @@
 #define MUTEX_TIMEOUT_MICROSECONDS 40000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 #define THREAD_CHECK_TIMEOUT_MICROSECONDS 2000
-#define MAX_THREADS_NUMBER 1000
+#define MAX_THREADS_NUMBER 50
 
 char *strjoin(char const *s1, char const *s2);
 
@@ -107,7 +107,7 @@ int hasStr(char **strs, char *str)
 char *randstring(size_t length)
 {
 
-    static char charset[] = "abcdefghijklmnopqrstuvwxyz.-";
+    static char charset[] = "abcdefghijklmnopqrstuvwxyz-";
     char *randomString = NULL;
 
     if (length)

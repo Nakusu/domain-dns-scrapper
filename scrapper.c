@@ -33,11 +33,11 @@
 #define BOLDCYAN "\033[1m\033[36m"    /* Bold Cyan */
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
-#define MUTEX_NUMBER 400
+#define MUTEX_NUMBER 600
 #define MUTEX_TIMEOUT_MICROSECONDS 40000
 #define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
 #define THREAD_CHECK_TIMEOUT_MICROSECONDS 2000
-#define MAX_THREADS_NUMBER 50
+#define MAX_THREADS_NUMBER 1200
 
 char *strjoin(char const *s1, char const *s2);
 

@@ -33,11 +33,11 @@
 #define BOLDCYAN "\033[1m\033[36m"    /* Bold Cyan */
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
-#define MUTEX_NUMBER 600
+#define MUTEX_NUMBER 800
 #define MUTEX_TIMEOUT_MICROSECONDS 40000
-#define THEAD_TIMEOUT_CREATION_MICROSECONDS 200
+#define THEAD_TIMEOUT_CREATION_MICROSECONDS 100
 #define THREAD_CHECK_TIMEOUT_MICROSECONDS 2000
-#define MAX_THREADS_NUMBER 1200
+#define MAX_THREADS_NUMBER 1500
 
 char *strjoin(char const *s1, char const *s2);
 
@@ -189,7 +189,7 @@ void *monitoring(void *args) {
     float process_percentage;
     while (threads_dones < (int)entries - 1) {
         process_percentage = threads_dones * 100 / entries;
-        printf("Process is done at %s%.2f%%%s. Still running %i threads\n", GREEN, process_percentage, RESET, (int)entries - threads_dones);
+        printf("Process is done at %s%.2f%%%s. Still running %i threads, actual results [%s]\n", GREEN, process_percentage, RESET, (int)entries - threads_dones, validSubDomains);
         sleep(1);
     }
 
@@ -232,7 +232,7 @@ int main(int ac, char **av)
 
     for (int i = 0; i < atoi(av[2]); i++)
     {
-        int maxLength = rand() % 35;
+        int maxLength = rand() % 30;
         if (!maxLength)
             continue;
 

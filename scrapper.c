@@ -238,19 +238,23 @@ int main(int ac, char **av)
 
         char *subDomain = strjoin(strjoin(randstring(maxLength), "."), av[1]);
 
-        printf("[%i] test subdomain %s\n", i, subDomain);
+        printf("[%i] add subdomain %s into the subdomains list\n", i, subDomain);
 
 
         // If subDomain has already been tested, pass it!
         if (hasStr(triesDomains, subDomain))
         {
             i -= 1;
-            printf(RED "Domain %s already tested!\n" RESET, subDomain);
+            printf(RED "Domain %s already in the list!\n" RESET, subDomain);
             free(subDomain);
             continue;
         }
 
         triesDomains = appendStr(triesDomains, subDomain);
+    }
+
+    for (int i = 0; i < atoi(av[2]); i++) {
+        char *subDomain = triesDomains[i];
 
         threadArg *args = malloc(sizeof(threadArg));
         args->index = i;
